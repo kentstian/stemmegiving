@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+{% block title %}Edit Poll - QR Voting{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>Edit poll</h1>
+    <p>Update poll details or change publication settings.</p>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.title.label }}
+            {{ form.title() }}
+        </div>
+        <div class="form-group">
+            {{ form.description.label }}
+            {{ form.description() }}
+        </div>
+        <div class="form-group">
+            {{ form.public_results() }} {{ form.public_results.label }}
+        </div>
+        <div class="form-group">
+            {{ form.submit() }}
+        </div>
+    </form>
+    <div class="poll-card">
+        <h2>Poll status</h2>
+        <p><strong>Status:</strong> {{ poll.status|capitalize }}</p>
+        {% if poll.status == 'draft' %}
+            <form method="post" action="{{ url_for('activate_poll', poll_id=poll.id) }}">
+                <button type="submit">Activate poll</button>
+            </form>
+        {% elif poll.status == 'active' %}
+            <form method="post" action="{{ url_for('close_poll', poll_id=poll.id) }}">
+                <button type="submit" class="secondary">Close poll</button>
+            </form>
+        {% else %}
+            <p>Poll was closed on {{ poll.closed_at.strftime('%Y-%m-%d %H:%M') if poll.closed_at else 'unknown' }}.</p>
+        {% endif %}
+        <p>
+            <a class="button" href="{{ url_for('manage_candidates', poll_id=poll.id) }}">Edit candidates</a>
+            <a class="button" href="{{ url_for('poll_qr', poll_id=poll.id) }}">QR code</a>
+            <a class="button" href="{{ url_for('poll_results', poll_id=poll.id) }}">Results</a>
+        </p>
+    </div>
+    <form method="post" action="{{ url_for('delete_poll', poll_id=poll.id) }}" onsubmit="return confirm('Delete this poll?');">
+        <button type="submit" class="danger">Delete poll</button>
+    </form>
+</div>
+{% endblock %}

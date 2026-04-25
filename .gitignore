@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+instance/
+voting_app.db
+uploads/
+static/qr/
+.env
+venv/

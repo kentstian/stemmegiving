@@ -1,0 +1,34 @@
+{% extends 'base.html' %}
+{% block title %}Create Poll - QR Voting{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Create a new poll</h1>
+    <form method="post" enctype="multipart/form-data">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.title.label }}
+            {{ form.title() }}
+        </div>
+        <div class="form-group">
+            {{ form.description.label }}
+            {{ form.description() }}
+        </div>
+        <div class="form-group">
+            {{ form.public_results() }} {{ form.public_results.label }}
+        </div>
+        <div class="form-group">
+            {{ form.candidates_manual.label }}
+            {{ form.candidates_manual(rows=6) }}
+            <small>One candidate per line or comma-separated.</small>
+        </div>
+        <div class="form-group">
+            {{ form.upload_file.label }}
+            {{ form.upload_file() }}
+            <small>Upload CSV or Excel file with candidate names.</small>
+        </div>
+        <div class="form-group">
+            {{ form.submit() }}
+        </div>
+    </form>
+</div>
+{% endblock %}

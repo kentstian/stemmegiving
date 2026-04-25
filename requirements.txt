@@ -1,0 +1,10 @@
+Flask
+Flask-Login
+Flask-WTF
+Flask-SQLAlchemy
+Werkzeug
+pandas
+openpyxl
+qrcode
+pillow
+email-validator

@@ -1,0 +1,9 @@
+{% extends 'base.html' %}
+{% block title %}Thanks - QR Voting{% endblock %}
+{% block content %}
+<div class="card" style="text-align:center;">
+    <h1>Thank you for voting!</h1>
+    <p>Your vote has been recorded.</p>
+    <p><a class="button secondary" href="{{ url_for('index') }}">Back to admin</a></p>
+</div>
+{% endblock %}

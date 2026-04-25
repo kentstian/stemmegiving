@@ -1,0 +1,23 @@
+{% extends 'base.html' %}
+{% block title %}Login - QR Voting{% endblock %}
+{% block content %}
+<div class="form-card">
+    <h1>Administrator login</h1>
+    <p>Use your admin account to manage polls and see results.</p>
+    <form method="post">
+        {{ form.hidden_tag() }}
+        <div class="form-group">
+            {{ form.email.label }}
+            {{ form.email(size=32) }}
+        </div>
+        <div class="form-group">
+            {{ form.password.label }}
+            {{ form.password(size=32) }}
+        </div>
+        <div class="form-group">
+            {{ form.submit() }}
+        </div>
+    </form>
+    <p>New administrator? <a href="{{ url_for('admin_register') }}">Register here</a>.</p>
+</div>
+{% endblock %}

@@ -1,0 +1,39 @@
+{% extends 'base.html' %}
+{% block title %}Results - QR Voting{% endblock %}
+{% block content %}
+<div class="card">
+    <h1>{{ poll.title }}</h1>
+    <p>{{ poll.description or "" }}</p>
+    <p><strong>Poll status:</strong> {{ poll.status|capitalize }}</p>
+    <p><strong>Total votes:</strong> {{ total }}</p>
+    <a class="button" href="{{ url_for('export_results', poll_id=poll.id) }}">Export CSV</a>
+    {% if current_user.is_authenticated %}
+        <a class="button secondary" href="{{ url_for('poll_qr', poll_id=poll.id) }}">QR code</a>
+    {% endif %}
+</div>
+<div class="results-card">
+    <h2>Vote breakdown</h2>
+    {% if candidates %}
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>Candidate</th>
+                    <th>Votes</th>
+                    <th>Share</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in candidates %}
+                    <tr>
+                        <td>{{ candidate.name }}</td>
+                        <td>{{ vote_counts[candidate.id] }}</td>
+                        <td>{{ ((vote_counts[candidate.id] / total * 100) if total else 0) | round(1) }}%</td>
+                    </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p>No candidates available.</p>
+    {% endif %}
+</div>
+{% endblock %}
