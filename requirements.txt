@@ -8,3 +8,4 @@ openpyxl
 qrcode
 pillow
 email-validator
+gunicorn
