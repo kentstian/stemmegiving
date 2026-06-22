@@ -1,48 +1,113 @@
 {% extends 'base.html' %}
-{% block title %}Edit Poll - QR Voting{% endblock %}
+{% block title %}Edit Poll{% endblock %}
 {% block content %}
 <div class="card">
-    <h1>Edit poll</h1>
-    <p>Update poll details or change publication settings.</p>
-    <form method="post">
+    <h1>{{ poll.title }}</h1>
+
+    <form method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+
         <div class="form-group">
-            {{ form.title.label }}
-            {{ form.title() }}
+            <label>{{ ui('poll_title_label') }}</label>
+            {{ form.title(class='form-control') }}
         </div>
         <div class="form-group">
-            {{ form.description.label }}
+            <label>{{ ui('description_label') }}</label>
             {{ form.description() }}
         </div>
+
+        <div class="form-section-heading">{{ ui('settings_heading') }}</div>
         <div class="form-group">
-            {{ form.public_results() }} {{ form.public_results.label }}
+            {{ form.public_results() }} <label style="display:inline;font-weight:normal;">{{ ui('public_results_label') }}</label>
         </div>
+        <div class="form-row">
+            <div class="form-group form-col">
+                <label>{{ ui('language_label') }}</label>
+                {{ form.language() }}
+            </div>
+            <div class="form-group form-col">
+                <label>{{ ui('background_color_label') }}</label>
+                <input type="color" name="background_color" id="background_color"
+                       value="{{ form.background_color.data or poll.background_color or '#f3f5f7' }}">
+            </div>
+        </div>
+
+        <div class="form-section-heading">{{ ui('appearance_heading') }}</div>
         <div class="form-group">
-            {{ form.submit() }}
+            <label>{{ ui('logo_label') }}</label>
+            {{ form.logo() }}
+            {% if poll.logo_filename %}
+            <div style="margin-top:8px;">
+                <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+                     alt="Current logo" style="max-height:80px;border-radius:8px;">
+                <small> – {{ ui('upload_logo_replace') }}</small>
+            </div>
+            {% endif %}
+        </div>
+
+        <div class="form-section-heading">{{ ui('schedule_heading') }}</div>
+        <div class="form-row">
+            <div class="form-group form-col">
+                <label>{{ ui('start_time_label') }}</label>
+                <input type="datetime-local" name="starts_at" id="starts_at"
+                       value="{{ form.starts_at.data or '' }}">
+                <small>{{ ui('leave_blank_start') }}</small>
+            </div>
+            <div class="form-group form-col">
+                <label>{{ ui('end_time_label') }}</label>
+                <input type="datetime-local" name="ends_at" id="ends_at"
+                       value="{{ form.ends_at.data or '' }}">
+                <small>{{ ui('leave_blank_end') }}</small>
+            </div>
+        </div>
+
+        <div class="form-group">
+            <button type="submit">{{ ui('save_btn') }}</button>
         </div>
     </form>
-    <div class="poll-card">
-        <h2>Poll status</h2>
-        <p><strong>Status:</strong> {{ poll.status|capitalize }}</p>
-        {% if poll.status == 'draft' %}
-            <form method="post" action="{{ url_for('activate_poll', poll_id=poll.id) }}">
-                <button type="submit">Activate poll</button>
-            </form>
-        {% elif poll.status == 'active' %}
-            <form method="post" action="{{ url_for('close_poll', poll_id=poll.id) }}">
-                <button type="submit" class="secondary">Close poll</button>
-            </form>
-        {% else %}
-            <p>Poll was closed on {{ poll.closed_at.strftime('%Y-%m-%d %H:%M') if poll.closed_at else 'unknown' }}.</p>
+
+    <hr class="section-divider">
+
+    <div class="poll-actions-section">
+        <h2>{{ ui('status_label') }}: <span class="status-badge status-{{ poll.status }}">{{ ui('status_' + poll.status) }}</span></h2>
+
+        {% if poll.starts_at or poll.ends_at %}
+        <div class="schedule-info">
+            {% if poll.starts_at %}<p>▶ {{ ui('start_time_label') }}: <strong>{{ poll.starts_at.strftime('%d.%m.%Y %H:%M') }}</strong></p>{% endif %}
+            {% if poll.ends_at %}<p>⏹ {{ ui('end_time_label') }}: <strong>{{ poll.ends_at.strftime('%d.%m.%Y %H:%M') }}</strong></p>{% endif %}
+        </div>
         {% endif %}
-        <p>
-            <a class="button" href="{{ url_for('manage_candidates', poll_id=poll.id) }}">Edit candidates</a>
-            <a class="button" href="{{ url_for('poll_qr', poll_id=poll.id) }}">QR code</a>
-            <a class="button" href="{{ url_for('poll_results', poll_id=poll.id) }}">Results</a>
-        </p>
+
+        <div class="action-buttons">
+            {% if poll.status == 'draft' %}
+            <form method="post" action="{{ url_for('activate_poll', poll_id=poll.id) }}" style="display:inline;">
+                <button type="submit">{{ ui('activate_btn') }}</button>
+            </form>
+            {% elif poll.status == 'active' %}
+            <form method="post" action="{{ url_for('close_poll', poll_id=poll.id) }}" style="display:inline;">
+                <button type="submit" class="secondary">{{ ui('close_btn') }}</button>
+            </form>
+            {% else %}
+            <p style="color:#64748b;">{{ ui('status_closed') }} – {{ poll.closed_at.strftime('%d.%m.%Y %H:%M') if poll.closed_at else '' }}</p>
+            {% endif %}
+        </div>
+
+        <div class="action-links">
+            <a class="button secondary" href="{{ url_for('manage_candidates', poll_id=poll.id) }}">{{ ui('edit_candidates_btn') }}</a>
+            <a class="button secondary" href="{{ url_for('manage_sponsors', poll_id=poll.id) }}">{{ ui('sponsors_btn') }}</a>
+            <a class="button secondary" href="{{ url_for('poll_qr', poll_id=poll.id) }}">{{ ui('qr_code_btn') }}</a>
+            <a class="button secondary" href="{{ url_for('poll_results', poll_id=poll.id) }}">{{ ui('results_btn') }}</a>
+        </div>
+
+        <div class="action-links" style="margin-top:12px;">
+            <form method="post" action="{{ url_for('copy_poll', poll_id=poll.id) }}" style="display:inline;">
+                <button type="submit" class="secondary">{{ ui('copy_btn') }}</button>
+            </form>
+            <form method="post" action="{{ url_for('delete_poll', poll_id=poll.id) }}" style="display:inline;"
+                  onsubmit="return confirm('{{ ui('confirm_delete') }}')">
+                <button type="submit" class="danger">{{ ui('delete_btn') }}</button>
+            </form>
+        </div>
     </div>
-    <form method="post" action="{{ url_for('delete_poll', poll_id=poll.id) }}" onsubmit="return confirm('Delete this poll?');">
-        <button type="submit" class="danger">Delete poll</button>
-    </form>
 </div>
 {% endblock %}

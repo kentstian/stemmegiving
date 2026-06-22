@@ -1,65 +1,66 @@
 {% extends 'base.html' %}
-{% block title %}Manage Candidates - QR Voting{% endblock %}
+{% block title %}{{ ui('edit_candidates_btn') }} – {{ poll.title }}{% endblock %}
 {% block content %}
 <div class="card">
-    <h1>Manage candidates</h1>
-    <p>Add names manually, upload a list, or remove candidates before publishing the poll.</p>
-    <div class="poll-card">
-        <h2>{{ poll.title }}</h2>
-        <p>{{ poll.description }}</p>
-    </div>
+    <h1>{{ ui('edit_candidates_btn') }}</h1>
+    <p class="poll-description">{{ poll.title }}</p>
+
     <div class="form-card">
+        <h3>{{ ui('add_candidate_btn') }}</h3>
         <form method="post">
             {{ candidate_form.hidden_tag() }}
-            <div class="form-group">
-                {{ candidate_form.candidate_name.label }}
-                {{ candidate_form.candidate_name() }}
-            </div>
-            <div class="form-group">
-                {{ candidate_form.submit() }}
+            <div class="form-group" style="display:flex;gap:10px;">
+                {{ candidate_form.candidate_name(placeholder='Name...', style='flex:1') }}
+                <button type="submit">{{ ui('add_candidate_btn') }}</button>
             </div>
         </form>
     </div>
-    <div class="form-card">
+
+    <div class="form-card" style="margin-top:16px;">
+        <h3>{{ ui('upload_file_label') }}</h3>
         <form method="post" enctype="multipart/form-data">
             {{ upload_form.hidden_tag() }}
-            <div class="form-group">
-                {{ upload_form.upload_file.label }}
+            <div class="form-group" style="display:flex;gap:10px;align-items:center;">
                 {{ upload_form.upload_file() }}
+                <button type="submit">{{ ui('upload_file_label') }}</button>
             </div>
-            <div class="form-group">
-                {{ upload_form.submit() }}
-            </div>
+            <small>{{ ui('csv_hint') }}</small>
         </form>
     </div>
-    <div class="results-card">
-        <h2>Candidate list</h2>
+
+    <div class="results-card" style="margin-top:20px;">
+        <h2>{{ ui('candidates_label') }} ({{ candidates|length }})</h2>
         {% if candidates %}
-            <table class="table">
-                <thead>
-                    <tr>
-                        <th>Name</th>
-                        <th>Votes</th>
-                        <th>Action</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {% for candidate in candidates %}
-                        <tr>
-                            <td>{{ candidate.name }}</td>
-                            <td>{{ candidate.vote_count() }}</td>
-                            <td>
-                                <form method="post" action="{{ url_for('delete_candidate', poll_id=poll.id, candidate_id=candidate.id) }}" style="display:inline;">
-                                    <button type="submit" class="danger">Delete</button>
-                                </form>
-                            </td>
-                        </tr>
-                    {% endfor %}
-                </tbody>
-            </table>
+        <table class="table">
+            <thead>
+                <tr>
+                    <th>{{ ui('candidate_col') }}</th>
+                    <th>{{ ui('votes_col') }}</th>
+                    <th>{{ ui('action_col') }}</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for candidate in candidates %}
+                <tr>
+                    <td>{{ candidate.name }}</td>
+                    <td>{{ candidate.vote_count() }}</td>
+                    <td>
+                        <form method="post" action="{{ url_for('delete_candidate', poll_id=poll.id, candidate_id=candidate.id) }}"
+                              style="display:inline;">
+                            <button type="submit" class="danger" style="padding:6px 12px;font-size:13px;">{{ ui('delete_btn') }}</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
         {% else %}
-            <p>No candidates yet. Add one manually or upload a file.</p>
+        <p style="color:#64748b;">{{ ui('no_candidates_admin') }}</p>
         {% endif %}
     </div>
+
+    <p style="margin-top:16px;">
+        <a class="button secondary" href="{{ url_for('edit_poll', poll_id=poll.id) }}">{{ ui('back_to_poll') }}</a>
+    </p>
 </div>
 {% endblock %}

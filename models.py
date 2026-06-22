@@ -20,6 +20,7 @@ class User(UserMixin, db.Model):
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
 
+
 class Poll(db.Model):
     __tablename__ = 'polls'
     id = db.Column(db.Integer, primary_key=True)
@@ -30,11 +31,36 @@ class Poll(db.Model):
     public_results = db.Column(db.Boolean, default=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     closed_at = db.Column(db.DateTime, nullable=True)
+    logo_filename = db.Column(db.String(255), nullable=True)
+    starts_at = db.Column(db.DateTime, nullable=True)
+    ends_at = db.Column(db.DateTime, nullable=True)
+    background_color = db.Column(db.String(7), default='#f3f5f7', nullable=False)
+    language = db.Column(db.String(5), default='en', nullable=False)
+
     candidates = db.relationship('Candidate', backref='poll', lazy=True, cascade='all, delete-orphan')
     votes = db.relationship('Vote', backref='poll', lazy=True, cascade='all, delete-orphan')
+    sponsors = db.relationship(
+        'Sponsor', backref='poll', lazy=True,
+        cascade='all, delete-orphan', order_by='Sponsor.sort_order',
+    )
 
     def vote_count(self):
         return len(self.votes)
+
+    def effective_status(self):
+        now = datetime.now()
+        if self.status == 'closed':
+            return 'closed'
+        if self.ends_at and now > self.ends_at:
+            return 'closed'
+        if self.status == 'active':
+            return 'active'
+        if self.starts_at and now >= self.starts_at:
+            return 'active'
+        if self.starts_at and now < self.starts_at:
+            return 'not_started'
+        return self.status  # 'draft'
+
 
 class Candidate(db.Model):
     __tablename__ = 'candidates'
@@ -48,6 +74,7 @@ class Candidate(db.Model):
     def vote_count(self):
         return len(self.votes)
 
+
 class Vote(db.Model):
     __tablename__ = 'votes'
     id = db.Column(db.Integer, primary_key=True)
@@ -56,4 +83,14 @@ class Vote(db.Model):
     voter_hash = db.Column(db.String(128), nullable=False, index=True)
     ip_hash = db.Column(db.String(128), nullable=False)
     user_agent_hash = db.Column(db.String(128), nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Sponsor(db.Model):
+    __tablename__ = 'sponsors'
+    id = db.Column(db.Integer, primary_key=True)
+    poll_id = db.Column(db.Integer, db.ForeignKey('polls.id'), nullable=False)
+    name = db.Column(db.String(255), nullable=True)
+    logo_filename = db.Column(db.String(255), nullable=True)
+    sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)

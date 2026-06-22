@@ -1,41 +1,40 @@
 {% extends 'base.html' %}
-{% block title %}Polls - QR Voting{% endblock %}
+{% block title %}{{ ui('nav_polls') }}{% endblock %}
 {% block content %}
 <div class="card">
-    <h1>All polls</h1>
-    <p>Manage your active and archived polls from one place.</p>
-    <a class="button" href="{{ url_for('create_poll') }}">Create poll</a>
+    <h1>{{ ui('nav_polls') }}</h1>
+    <a class="button" href="{{ url_for('create_poll') }}">+ {{ ui('create_btn') }}</a>
 </div>
 <div class="results-card">
     {% if polls %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Title</th>
-                    <th>Status</th>
-                    <th>Created</th>
-                    <th>Votes</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for poll in polls %}
-                    <tr>
-                        <td>{{ poll.title }}</td>
-                        <td>{{ poll.status|capitalize }}</td>
-                        <td>{{ poll.created_at.strftime('%Y-%m-%d') }}</td>
-                        <td>{{ poll.vote_count() }}</td>
-                        <td>
-                            <a href="{{ url_for('edit_poll', poll_id=poll.id) }}">Edit</a> |
-                            <a href="{{ url_for('manage_candidates', poll_id=poll.id) }}">Candidates</a> |
-                            <a href="{{ url_for('poll_qr', poll_id=poll.id) }}">QR</a>
-                        </td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    <table class="table">
+        <thead>
+            <tr>
+                <th>{{ ui('poll_title_label') }}</th>
+                <th>{{ ui('status_label') }}</th>
+                <th>Created</th>
+                <th>{{ ui('votes_col') }}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for poll in polls %}
+            <tr>
+                <td><a href="{{ url_for('edit_poll', poll_id=poll.id) }}">{{ poll.title }}</a></td>
+                <td><span class="status-badge status-{{ poll.status }}">{{ ui('status_' + poll.status) }}</span></td>
+                <td>{{ poll.created_at.strftime('%d.%m.%Y') }}</td>
+                <td>{{ poll.vote_count() }}</td>
+                <td class="action-cell">
+                    <a href="{{ url_for('manage_candidates', poll_id=poll.id) }}">{{ ui('edit_candidates_btn') }}</a>
+                    <a href="{{ url_for('poll_qr', poll_id=poll.id) }}">{{ ui('qr_code_btn') }}</a>
+                    <a href="{{ url_for('poll_results', poll_id=poll.id) }}">{{ ui('results_btn') }}</a>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
     {% else %}
-        <p>No polls yet. Add one using the button above.</p>
+    <p style="padding:20px;color:#64748b;">{{ ui('no_polls') }}</p>
     {% endif %}
 </div>
 {% endblock %}

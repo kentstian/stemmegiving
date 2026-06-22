@@ -1,0 +1,66 @@
+{% extends 'voter_base.html' %}
+{% block title %}{{ poll.title }} – {{ ui('current_standings') }}{% endblock %}
+{% block content %}
+
+{% if poll.logo_filename %}
+<div class="poll-logo-banner">
+    <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+         alt="{{ poll.title }}" class="poll-logo-img">
+</div>
+{% endif %}
+
+<div class="card">
+    <h1 class="vote-poll-title">{{ poll.title }}</h1>
+
+    {% if closed %}
+        <div class="alert alert-warning">{{ ui('poll_closed') }}</div>
+    {% elif just_voted %}
+        <div class="alert alert-success">{{ ui('vote_recorded') }}</div>
+    {% else %}
+        <div class="alert alert-warning">{{ ui('already_voted') }}</div>
+    {% endif %}
+
+    <p class="total-votes-line"><strong>{{ ui('total_votes') }}:</strong> {{ total }}</p>
+</div>
+
+<div class="results-card">
+    <h2>{{ ui('current_standings') }}</h2>
+    {% for candidate in candidates %}
+    {% set count = vote_counts[candidate.id] %}
+    {% set pct = ((count / total * 100) if total else 0) | round(1) %}
+    <div class="result-row {% if candidate.id == voted_candidate_id %}result-row--my-vote{% endif %}">
+        <div class="result-candidate-name">
+            {{ candidate.name }}
+            {% if candidate.id == voted_candidate_id %}
+            <span class="my-vote-badge">{{ ui('your_vote') }}</span>
+            {% endif %}
+        </div>
+        <div class="result-bar-wrap">
+            <div class="result-bar" style="width: {{ pct }}%;"></div>
+        </div>
+        <div class="result-stats">
+            {{ count }} {{ ui('votes') if count != 1 else ui('vote') }} ({{ pct }}%)
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% if poll.sponsors %}
+<div class="sponsors-section">
+    <p class="sponsors-heading">{{ ui('sponsors') }}</p>
+    <div class="sponsors-row">
+        {% for sponsor in poll.sponsors %}
+        <div class="sponsor-item">
+            {% if sponsor.logo_filename %}
+            <img src="{{ url_for('static', filename='sponsors/' + sponsor.logo_filename) }}"
+                 alt="{{ sponsor.name or '' }}" class="sponsor-logo">
+            {% elif sponsor.name %}
+            <span class="sponsor-name">{{ sponsor.name }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}

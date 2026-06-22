@@ -1,31 +1,66 @@
-{% extends 'base.html' %}
-{% block title %}Vote - QR Voting{% endblock %}
+{% extends 'voter_base.html' %}
+{% block title %}{{ poll.title }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>{{ poll.title }}</h1>
-    {% if poll.description %}<p>{{ poll.description }}</p>{% endif %}
+
+{% if poll.logo_filename %}
+<div class="poll-logo-banner">
+    <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+         alt="{{ poll.title }}" class="poll-logo-img">
+</div>
+{% endif %}
+
+<div class="card vote-page-card">
+    <h1 class="vote-poll-title">{{ poll.title }}</h1>
+    {% if poll.description %}
+    <p class="poll-description">{{ poll.description }}</p>
+    {% endif %}
 
     {% if error %}
         <div class="alert alert-warning">{{ error }}</div>
-    {% endif %}
-
-    {% if form %}
-        <form method="post">
+        <p style="text-align:center;color:#64748b;margin-top:16px;">
+            {% if poll.logo_filename %}
+            <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+                 alt="" style="max-height:60px;opacity:.4;">
+            {% endif %}
+        </p>
+    {% elif form %}
+        <form method="post" class="vote-form">
             {{ form.hidden_tag() }}
-            <div class="radio-group">
+            <div class="vote-cards-grid">
                 {% for value, label in form.candidate.choices %}
-                    <label>
-                        <input type="radio" name="candidate" value="{{ value }}" {% if form.candidate.data == value %}checked{% endif %}>
-                        {{ label }}
-                    </label>
+                <label class="vote-card">
+                    <input type="radio" name="candidate" value="{{ value }}"
+                           {% if form.candidate.data == value %}checked{% endif %}>
+                    <span class="vote-card-name">{{ label }}</span>
+                </label>
                 {% endfor %}
             </div>
-            <div class="form-group">
-                <button type="submit">Vote now</button>
+            {% if form.errors %}
+            <div class="alert alert-danger">Please select a candidate.</div>
+            {% endif %}
+            <div class="vote-submit-row">
+                <button type="submit" class="vote-submit-btn">{{ ui('vote_now') }}</button>
             </div>
         </form>
-    {% else %}
-        <p>Please visit this poll again when it is active and ready for voting.</p>
     {% endif %}
 </div>
+
+{% if poll.sponsors %}
+<div class="sponsors-section">
+    <p class="sponsors-heading">{{ ui('sponsors') }}</p>
+    <div class="sponsors-row">
+        {% for sponsor in poll.sponsors %}
+        <div class="sponsor-item">
+            {% if sponsor.logo_filename %}
+            <img src="{{ url_for('static', filename='sponsors/' + sponsor.logo_filename) }}"
+                 alt="{{ sponsor.name or '' }}" class="sponsor-logo">
+            {% elif sponsor.name %}
+            <span class="sponsor-name">{{ sponsor.name }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}

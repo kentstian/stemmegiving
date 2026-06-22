@@ -1,33 +1,71 @@
 {% extends 'base.html' %}
-{% block title %}Create Poll - QR Voting{% endblock %}
+{% block title %}Create Poll{% endblock %}
 {% block content %}
 <div class="form-card">
-    <h1>Create a new poll</h1>
+    <h1>{{ ui('create_btn') }}</h1>
     <form method="post" enctype="multipart/form-data">
         {{ form.hidden_tag() }}
+
         <div class="form-group">
-            {{ form.title.label }}
-            {{ form.title() }}
+            <label>{{ ui('poll_title_label') }}</label>
+            {{ form.title(class='form-control') }}
         </div>
         <div class="form-group">
-            {{ form.description.label }}
+            <label>{{ ui('description_label') }}</label>
             {{ form.description() }}
         </div>
+
+        <div class="form-section-heading">{{ ui('settings_heading') }}</div>
         <div class="form-group">
-            {{ form.public_results() }} {{ form.public_results.label }}
+            {{ form.public_results() }} <label style="display:inline;font-weight:normal;">{{ ui('public_results_label') }}</label>
+        </div>
+        <div class="form-row">
+            <div class="form-group form-col">
+                <label>{{ ui('language_label') }}</label>
+                {{ form.language() }}
+            </div>
+            <div class="form-group form-col">
+                <label>{{ ui('background_color_label') }}</label>
+                <input type="color" name="background_color" id="background_color"
+                       value="{{ form.background_color.data or '#f3f5f7' }}">
+            </div>
+        </div>
+
+        <div class="form-section-heading">{{ ui('appearance_heading') }}</div>
+        <div class="form-group">
+            <label>{{ ui('logo_label') }}</label>
+            {{ form.logo() }}
+        </div>
+
+        <div class="form-section-heading">{{ ui('schedule_heading') }}</div>
+        <div class="form-row">
+            <div class="form-group form-col">
+                <label>{{ ui('start_time_label') }}</label>
+                <input type="datetime-local" name="starts_at" id="starts_at"
+                       value="{{ form.starts_at.data or '' }}">
+                <small>{{ ui('leave_blank_start') }}</small>
+            </div>
+            <div class="form-group form-col">
+                <label>{{ ui('end_time_label') }}</label>
+                <input type="datetime-local" name="ends_at" id="ends_at"
+                       value="{{ form.ends_at.data or '' }}">
+                <small>{{ ui('leave_blank_end') }}</small>
+            </div>
+        </div>
+
+        <div class="form-section-heading">{{ ui('candidates_label') }}</div>
+        <div class="form-group">
+            {{ form.candidates_manual(rows=6, placeholder='One candidate per line...') }}
+            <small>{{ ui('one_per_line') }}</small>
         </div>
         <div class="form-group">
-            {{ form.candidates_manual.label }}
-            {{ form.candidates_manual(rows=6) }}
-            <small>One candidate per line or comma-separated.</small>
-        </div>
-        <div class="form-group">
-            {{ form.upload_file.label }}
+            <label>{{ ui('upload_file_label') }}</label>
             {{ form.upload_file() }}
-            <small>Upload CSV or Excel file with candidate names.</small>
+            <small>{{ ui('csv_hint') }}</small>
         </div>
+
         <div class="form-group">
-            {{ form.submit() }}
+            <button type="submit">{{ ui('create_btn') }}</button>
         </div>
     </form>
 </div>
