@@ -36,6 +36,7 @@ class Poll(db.Model):
     ends_at = db.Column(db.DateTime, nullable=True)
     background_color = db.Column(db.String(7), default='#f3f5f7', nullable=False)
     language = db.Column(db.String(5), default='en', nullable=False)
+    poll_label = db.Column(db.String(100), nullable=True)
 
     candidates = db.relationship('Candidate', backref='poll', lazy=True, cascade='all, delete-orphan')
     votes = db.relationship('Vote', backref='poll', lazy=True, cascade='all, delete-orphan')
@@ -69,6 +70,10 @@ class Candidate(db.Model):
     name = db.Column(db.String(255), nullable=False)
     sort_order = db.Column(db.Integer, default=0)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    jersey_number = db.Column(db.String(10), nullable=True)
+    position = db.Column(db.String(100), nullable=True)
+    stats_line = db.Column(db.String(255), nullable=True)
+    photo_filename = db.Column(db.String(255), nullable=True)
     votes = db.relationship('Vote', backref='candidate', lazy=True, cascade='all, delete-orphan')
 
     def vote_count(self):

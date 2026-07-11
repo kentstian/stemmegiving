@@ -23,6 +23,7 @@ class LoginForm(FlaskForm):
 class PollForm(FlaskForm):
     title = StringField('Poll title', validators=[DataRequired()])
     description = TextAreaField('Description', validators=[Optional()])
+    poll_label = StringField('Poll label', validators=[Optional()])
     public_results = BooleanField('Show public results')
     # Stored as strings, parsed to datetime in the route
     starts_at = StringField('Start time', validators=[Optional()])
@@ -41,6 +42,10 @@ class CreatePollForm(PollForm):
 
 class CandidateForm(FlaskForm):
     candidate_name = StringField('Candidate name', validators=[DataRequired()])
+    jersey_number = StringField('Jersey #', validators=[Optional()])
+    position = StringField('Position', validators=[Optional()])
+    stats_line = StringField('Stats', validators=[Optional()])
+    candidate_photo = FileField('Photo', validators=[Optional()])
     submit = SubmitField('Add Candidate')
 
 

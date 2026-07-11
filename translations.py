@@ -12,6 +12,7 @@ TRANSLATIONS = {
         'poll_opens_at': 'It opens at',
         'no_candidates': 'No candidates available for this poll.',
         'sponsors': 'Sponsors',
+        'one_vote_per_supporter': 'One vote per supporter',
         'vote': 'vote',
         'votes': 'votes',
         # Admin nav
@@ -90,6 +91,7 @@ TRANSLATIONS = {
         'poll_opens_at': 'Den åpner',
         'no_candidates': 'Ingen kandidater tilgjengelig for denne avstemningen.',
         'sponsors': 'Sponsorer',
+        'one_vote_per_supporter': 'Én stemme per supporter',
         'vote': 'stemme',
         'votes': 'stemmer',
         # Admin nav

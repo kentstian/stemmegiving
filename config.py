@@ -10,4 +10,5 @@ class Config:
     QR_FOLDER = os.path.join(basedir, 'static', 'qr')
     LOGOS_FOLDER = os.path.join(basedir, 'static', 'logos')
     SPONSORS_FOLDER = os.path.join(basedir, 'static', 'sponsors')
+    CANDIDATE_PHOTOS_FOLDER = os.path.join(basedir, 'static', 'candidate_photos')
     MAX_CONTENT_LENGTH = 16 * 1024 * 1024
