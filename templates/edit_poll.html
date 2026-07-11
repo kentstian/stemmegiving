@@ -15,6 +15,11 @@
             <label>{{ ui('description_label') }}</label>
             {{ form.description() }}
         </div>
+        <div class="form-group">
+            <label>Poll label <small style="font-weight:normal;">(e.g. "MONTHLY POLL")</small></label>
+            {{ form.poll_label(class='form-control', placeholder='MONTHLY POLL') }}
+            <small>Shown above the title on the voter page, followed by the closing month/year.</small>
+        </div>
 
         <div class="form-section-heading">{{ ui('settings_heading') }}</div>
         <div class="form-group">
