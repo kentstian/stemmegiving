@@ -76,25 +76,41 @@ def ensure_directories():
         app.config['QR_FOLDER'],
         app.config['LOGOS_FOLDER'],
         app.config['SPONSORS_FOLDER'],
+        app.config['CANDIDATE_PHOTOS_FOLDER'],
     ]:
         os.makedirs(folder, exist_ok=True)
 
 
 def migrate_db():
     with db.engine.connect() as conn:
-        new_cols = [
+        polls_cols = [
             ('logo_filename', 'VARCHAR(255)'),
             ('starts_at', 'DATETIME'),
             ('ends_at', 'DATETIME'),
             ('background_color', "VARCHAR(7) NOT NULL DEFAULT '#f3f5f7'"),
             ('language', "VARCHAR(5) NOT NULL DEFAULT 'en'"),
+            ('poll_label', 'VARCHAR(100)'),
         ]
-        for col, typedef in new_cols:
+        for col, typedef in polls_cols:
             try:
                 conn.execute(text(f'ALTER TABLE polls ADD COLUMN {col} {typedef}'))
                 conn.commit()
             except Exception:
                 pass
+
+        candidates_cols = [
+            ('jersey_number', 'VARCHAR(10)'),
+            ('position', 'VARCHAR(100)'),
+            ('stats_line', 'VARCHAR(255)'),
+            ('photo_filename', 'VARCHAR(255)'),
+        ]
+        for col, typedef in candidates_cols:
+            try:
+                conn.execute(text(f'ALTER TABLE candidates ADD COLUMN {col} {typedef}'))
+                conn.commit()
+            except Exception:
+                pass
+
     db.create_all()
 
 
@@ -199,13 +215,33 @@ def build_results(poll):
     return candidates, vote_counts, total
 
 
-# ── Public routes ─────────────────────────────────────────────────────────────
+# ── Public routes ─────────────────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
     if current_user.is_authenticated:
         return redirect(url_for('admin_dashboard'))
     return redirect(url_for('admin_login'))
+
+
+def _vote_context_extras(poll):
+    """Compute extra template vars for the voter UI."""
+    # Time remaining until poll closes
+    time_left_str = None
+    if poll.ends_at:
+        delta = poll.ends_at - datetime.now()
+        if delta.total_seconds() > 0:
+            days = delta.days
+            hours = delta.seconds // 3600
+            time_left_str = f'{days}D {hours}H' if days > 0 else f'{hours}H'
+
+    # Category label with auto-appended month/year
+    label_display = None
+    if poll.poll_label:
+        ref_date = poll.ends_at or poll.created_at
+        label_display = f"{poll.poll_label.upper()} · {ref_date.strftime('%B %Y').upper()}"
+
+    return time_left_str, label_display
 
 
 @app.route('/vote/<int:poll_id>', methods=['GET', 'POST'])
@@ -221,9 +257,14 @@ def vote(poll_id):
     if existing_vote:
         return redirect(url_for('vote_done', poll_id=poll.id))
 
+    time_left_str, label_display = _vote_context_extras(poll)
+
     if eff == 'not_started':
         opens_msg = f"{ui('poll_not_open')} {ui('poll_opens_at')} {poll.starts_at.strftime('%d.%m.%Y %H:%M')}."
-        return render_template('vote.html', poll=poll, form=None, error=opens_msg, ui=ui)
+        return render_template('vote.html', poll=poll, form=None, error=opens_msg, ui=ui,
+                               eff=eff, candidates=[], vote_counts={}, total_votes=0,
+                               candidates_by_votes=[], time_left_str=time_left_str,
+                               label_display=label_display)
 
     if eff in ('draft', 'closed'):
         error = ui('poll_closed') if eff == 'closed' else ui('poll_not_open')
@@ -241,12 +282,22 @@ def vote(poll_id):
                 closed=True,
                 ui=ui,
             )
-        return render_template('vote.html', poll=poll, form=None, error=error, ui=ui)
+        return render_template('vote.html', poll=poll, form=None, error=error, ui=ui,
+                               eff=eff, candidates=[], vote_counts={}, total_votes=0,
+                               candidates_by_votes=[], time_left_str=time_left_str,
+                               label_display=label_display)
 
     # Poll is active
     candidates = Candidate.query.filter_by(poll_id=poll.id).order_by(Candidate.sort_order).all()
     if not candidates:
-        return render_template('vote.html', poll=poll, form=None, error=ui('no_candidates'), ui=ui)
+        return render_template('vote.html', poll=poll, form=None, error=ui('no_candidates'), ui=ui,
+                               eff=eff, candidates=[], vote_counts={}, total_votes=0,
+                               candidates_by_votes=[], time_left_str=time_left_str,
+                               label_display=label_display)
+
+    vote_counts = {c.id: c.vote_count() for c in candidates}
+    total_votes = sum(vote_counts.values())
+    candidates_by_votes = sorted(candidates, key=lambda c: vote_counts[c.id], reverse=True)
 
     form = VoteForm()
     form.candidate.choices = [(c.id, c.name) for c in candidates]
@@ -271,7 +322,10 @@ def vote(poll_id):
         response.set_cookie(COOKIE_NAME, cookie_value, max_age=365 * 24 * 60 * 60)
         return response
 
-    return render_template('vote.html', poll=poll, form=form, error=None, ui=ui)
+    return render_template('vote.html', poll=poll, form=form, error=None, ui=ui,
+                           eff=eff, candidates=candidates, vote_counts=vote_counts,
+                           total_votes=total_votes, candidates_by_votes=candidates_by_votes,
+                           time_left_str=time_left_str, label_display=label_display)
 
 
 @app.route('/vote/<int:poll_id>/done')
@@ -320,7 +374,7 @@ def thanks():
     return render_template('thanks.html')
 
 
-# ── Admin routes ──────────────────────────────────────────────────────────────
+# ── Admin routes ──────────────────────────────────────────────────────────────────────────────────
 
 @app.route('/admin/set-language/<lang>')
 def set_admin_language(lang):
@@ -449,6 +503,7 @@ def edit_poll(poll_id):
     if form.validate_on_submit():
         poll.title = form.title.data.strip()
         poll.description = form.description.data.strip() if form.description.data else ''
+        poll.poll_label = form.poll_label.data.strip() if form.poll_label.data else None
         poll.public_results = form.public_results.data
         poll.starts_at = parse_datetime(form.starts_at.data)
         poll.ends_at = parse_datetime(form.ends_at.data)
@@ -552,10 +607,18 @@ def manage_candidates(poll_id):
     candidates = Candidate.query.filter_by(poll_id=poll.id).order_by(Candidate.sort_order).all()
 
     if candidate_form.validate_on_submit() and candidate_form.candidate_name.data:
+        photo_filename = None
+        photo_file = candidate_form.candidate_photo.data
+        if photo_file and photo_file.filename and allowed_image(photo_file.filename):
+            photo_filename = save_image(photo_file, app.config['CANDIDATE_PHOTOS_FOLDER'])
         candidate = Candidate(
             poll_id=poll.id,
             name=candidate_form.candidate_name.data.strip(),
             sort_order=len(candidates) + 1,
+            jersey_number=candidate_form.jersey_number.data.strip() or None,
+            position=candidate_form.position.data.strip() or None,
+            stats_line=candidate_form.stats_line.data.strip() or None,
+            photo_filename=photo_filename,
         )
         db.session.add(candidate)
         db.session.commit()
@@ -594,6 +657,23 @@ def delete_candidate(poll_id, candidate_id):
     db.session.delete(candidate)
     db.session.commit()
     flash('Candidate deleted.', 'success')
+    return redirect(url_for('manage_candidates', poll_id=poll.id))
+
+
+@app.route('/admin/polls/<int:poll_id>/candidates/<int:candidate_id>/edit', methods=['POST'])
+@login_required
+def edit_candidate(poll_id, candidate_id):
+    poll = Poll.query.filter_by(id=poll_id, user_id=current_user.id).first_or_404()
+    candidate = Candidate.query.filter_by(id=candidate_id, poll_id=poll.id).first_or_404()
+    candidate.name = request.form.get('name', candidate.name).strip() or candidate.name
+    candidate.jersey_number = request.form.get('jersey_number', '').strip() or None
+    candidate.position = request.form.get('position', '').strip() or None
+    candidate.stats_line = request.form.get('stats_line', '').strip() or None
+    photo_file = request.files.get('candidate_photo')
+    if photo_file and photo_file.filename and allowed_image(photo_file.filename):
+        candidate.photo_filename = save_image(photo_file, app.config['CANDIDATE_PHOTOS_FOLDER'])
+    db.session.commit()
+    flash('Candidate updated.', 'success')
     return redirect(url_for('manage_candidates', poll_id=poll.id))
 
 
