@@ -215,7 +215,7 @@ def build_results(poll):
     return candidates, vote_counts, total
 
 
-# ── Public routes ─────────────────────────────────────────────────────────────────────────────────
+# ── Public routes ─────────────────────────────────────────────────────────────────────────────────────
 
 @app.route('/')
 def index():
@@ -374,7 +374,7 @@ def thanks():
     return render_template('thanks.html')
 
 
-# ── Admin routes ──────────────────────────────────────────────────────────────────────────────────
+# ── Admin routes ────────────────────────────────────────────────────────────────────────────────────────
 
 @app.route('/admin/set-language/<lang>')
 def set_admin_language(lang):
@@ -657,6 +657,21 @@ def delete_candidate(poll_id, candidate_id):
     db.session.delete(candidate)
     db.session.commit()
     flash('Candidate deleted.', 'success')
+    return redirect(url_for('manage_candidates', poll_id=poll.id))
+
+
+@app.route('/admin/polls/<int:poll_id>/candidates/bulk-delete', methods=['POST'])
+@login_required
+def bulk_delete_candidates(poll_id):
+    poll = Poll.query.filter_by(id=poll_id, user_id=current_user.id).first_or_404()
+    ids = request.form.getlist('candidate_ids')
+    if ids:
+        Candidate.query.filter(
+            Candidate.id.in_([int(i) for i in ids]),
+            Candidate.poll_id == poll.id,
+        ).delete(synchronize_session=False)
+        db.session.commit()
+        flash(f'{len(ids)} candidate(s) deleted.', 'success')
     return redirect(url_for('manage_candidates', poll_id=poll.id))
 
 

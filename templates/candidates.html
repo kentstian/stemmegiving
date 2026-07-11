@@ -52,73 +52,93 @@
     <div class="results-card" style="margin-top:20px;">
         <h2>{{ ui('candidates_label') }} ({{ candidates|length }})</h2>
         {% if candidates %}
-        <div class="candidates-list">
-            {% for candidate in candidates %}
-            <div class="candidate-edit-row">
-                <div class="candidate-edit-left">
-                    {% if candidate.photo_filename %}
-                    <img src="{{ url_for('static', filename='candidate_photos/' + candidate.photo_filename) }}"
-                         alt="{{ candidate.name }}" class="candidate-thumb">
-                    {% else %}
-                    <div class="candidate-thumb candidate-thumb-init">
-                        {% set words = candidate.name.split() %}
-                        {{ (words[0][0] + (words[1][0] if words|length > 1 else ''))|upper }}
-                    </div>
-                    {% endif %}
-                    <div>
-                        <strong>{{ candidate.name }}</strong>
-                        {% if candidate.jersey_number %}<span class="cand-meta">#{{ candidate.jersey_number }}</span>{% endif %}
-                        {% if candidate.position %}<span class="cand-meta">{{ candidate.position }}</span>{% endif %}
-                        {% if candidate.stats_line %}<br><small>{{ candidate.stats_line }}</small>{% endif %}
-                        <br><small style="color:#94a3b8;">{{ candidate.vote_count() }} votes</small>
-                    </div>
-                </div>
-                <div class="candidate-edit-actions">
-                    <button type="button" class="secondary" style="font-size:13px;padding:6px 12px;"
-                            onclick="toggleEdit({{ candidate.id }})">Edit</button>
-                    <form method="post" action="{{ url_for('delete_candidate', poll_id=poll.id, candidate_id=candidate.id) }}"
-                          style="display:inline;">
-                        <button type="submit" class="danger" style="font-size:13px;padding:6px 12px;">{{ ui('delete_btn') }}</button>
-                    </form>
-                </div>
-                <!-- Inline edit form (hidden by default) -->
-                <div class="candidate-edit-form" id="edit-{{ candidate.id }}" style="display:none;width:100%;margin-top:12px;">
-                    <form method="post" enctype="multipart/form-data"
-                          action="{{ url_for('edit_candidate', poll_id=poll.id, candidate_id=candidate.id) }}">
-                        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                        <div class="form-row">
-                            <div class="form-group form-col">
-                                <label>Name</label>
-                                <input type="text" name="name" value="{{ candidate.name }}">
-                            </div>
-                            <div class="form-group" style="width:90px;flex-shrink:0;">
-                                <label>Jersey #</label>
-                                <input type="text" name="jersey_number" value="{{ candidate.jersey_number or '' }}">
-                            </div>
-                        </div>
-                        <div class="form-row">
-                            <div class="form-group form-col">
-                                <label>Position</label>
-                                <input type="text" name="position" value="{{ candidate.position or '' }}" placeholder="Forward">
-                            </div>
-                            <div class="form-group form-col">
-                                <label>Stats</label>
-                                <input type="text" name="stats_line" value="{{ candidate.stats_line or '' }}" placeholder="6 goals · 2 assists">
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label>New photo</label>
-                            <input type="file" name="candidate_photo" accept="image/*">
-                        </div>
-                        <div style="display:flex;gap:8px;">
-                            <button type="submit">Save</button>
-                            <button type="button" class="secondary" onclick="toggleEdit({{ candidate.id }})">Cancel</button>
-                        </div>
-                    </form>
-                </div>
+
+        <form method="post" action="{{ url_for('bulk_delete_candidates', poll_id=poll.id) }}" id="bulk-form">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="bulk-header">
+                <label class="bulk-select-all">
+                    <input type="checkbox" id="select-all"> Select all
+                </label>
+                <button type="submit" class="danger" id="bulk-delete-btn" disabled
+                        onclick="return confirm('Delete selected candidates?')">
+                    Delete selected (<span id="sel-count">0</span>)
+                </button>
             </div>
-            {% endfor %}
-        </div>
+
+            <div class="candidates-list">
+                {% for candidate in candidates %}
+                <div class="candidate-edit-row">
+                    <input type="checkbox" name="candidate_ids" value="{{ candidate.id }}"
+                           class="cand-check">
+                    <div class="candidate-edit-left">
+                        {% if candidate.photo_filename %}
+                        <img src="{{ url_for('static', filename='candidate_photos/' + candidate.photo_filename) }}"
+                             alt="{{ candidate.name }}" class="candidate-thumb">
+                        {% else %}
+                        <div class="candidate-thumb candidate-thumb-init">
+                            {% set words = candidate.name.split() %}
+                            {{ (words[0][0] + (words[1][0] if words|length > 1 else ''))|upper }}
+                        </div>
+                        {% endif %}
+                        <div>
+                            <strong>{{ candidate.name }}</strong>
+                            {% if candidate.jersey_number %}<span class="cand-meta">#{{ candidate.jersey_number }}</span>{% endif %}
+                            {% if candidate.position %}<span class="cand-meta">{{ candidate.position }}</span>{% endif %}
+                            {% if candidate.stats_line %}<br><small>{{ candidate.stats_line }}</small>{% endif %}
+                            <br><small style="color:#94a3b8;">{{ candidate.vote_count() }} votes</small>
+                        </div>
+                    </div>
+                    <div class="candidate-edit-actions">
+                        <button type="button" class="secondary" style="font-size:13px;padding:6px 12px;"
+                                onclick="toggleEdit({{ candidate.id }})">Edit</button>
+                        <button type="submit" form="del-{{ candidate.id }}" class="danger"
+                                style="font-size:13px;padding:6px 12px;">{{ ui('delete_btn') }}</button>
+                    </div>
+                    <!-- Inline edit form (hidden by default) -->
+                    <div class="candidate-edit-form" id="edit-{{ candidate.id }}" style="display:none;width:100%;margin-top:12px;">
+                        <form method="post" enctype="multipart/form-data"
+                              action="{{ url_for('edit_candidate', poll_id=poll.id, candidate_id=candidate.id) }}">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <div class="form-row">
+                                <div class="form-group form-col">
+                                    <label>Name</label>
+                                    <input type="text" name="name" value="{{ candidate.name }}">
+                                </div>
+                                <div class="form-group" style="width:90px;flex-shrink:0;">
+                                    <label>Jersey #</label>
+                                    <input type="text" name="jersey_number" value="{{ candidate.jersey_number or '' }}">
+                                </div>
+                            </div>
+                            <div class="form-row">
+                                <div class="form-group form-col">
+                                    <label>Position</label>
+                                    <input type="text" name="position" value="{{ candidate.position or '' }}" placeholder="Forward">
+                                </div>
+                                <div class="form-group form-col">
+                                    <label>Stats</label>
+                                    <input type="text" name="stats_line" value="{{ candidate.stats_line or '' }}" placeholder="6 goals · 2 assists">
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>New photo</label>
+                                <input type="file" name="candidate_photo" accept="image/*">
+                            </div>
+                            <div style="display:flex;gap:8px;">
+                                <button type="submit">Save</button>
+                                <button type="button" class="secondary" onclick="toggleEdit({{ candidate.id }})">Cancel</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+                <!-- Hidden single-delete form (submitted via button[form=...]) -->
+                <form id="del-{{ candidate.id }}" method="post"
+                      action="{{ url_for('delete_candidate', poll_id=poll.id, candidate_id=candidate.id) }}"
+                      style="display:none;"></form>
+                {% endfor %}
+            </div>
+        </form>
+
         {% else %}
         <p style="color:#64748b;">{{ ui('no_candidates_admin') }}</p>
         {% endif %}
@@ -134,5 +154,29 @@ function toggleEdit(id) {
     const el = document.getElementById('edit-' + id);
     el.style.display = el.style.display === 'none' ? 'block' : 'none';
 }
+
+(function () {
+    const selectAll = document.getElementById('select-all');
+    const bulkBtn   = document.getElementById('bulk-delete-btn');
+    const counter   = document.getElementById('sel-count');
+    if (!selectAll) return;
+
+    function updateBulk() {
+        const all     = document.querySelectorAll('.cand-check');
+        const checked = document.querySelectorAll('.cand-check:checked').length;
+        counter.textContent = checked;
+        bulkBtn.disabled = checked === 0;
+        selectAll.indeterminate = checked > 0 && checked < all.length;
+        selectAll.checked = all.length > 0 && checked === all.length;
+    }
+
+    selectAll.addEventListener('change', function () {
+        document.querySelectorAll('.cand-check').forEach(cb => cb.checked = this.checked);
+        updateBulk();
+    });
+
+    document.querySelectorAll('.cand-check').forEach(cb =>
+        cb.addEventListener('change', updateBulk));
+})();
 </script>
 {% endblock %}
