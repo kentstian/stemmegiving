@@ -1,31 +1,247 @@
-{% extends 'base.html' %}
-{% block title %}Vote - QR Voting{% endblock %}
+{% extends 'voter_base.html' %}
+{% block title %}{{ poll.title }}{% endblock %}
 {% block content %}
-<div class="card">
-    <h1>{{ poll.title }}</h1>
-    {% if poll.description %}<p>{{ poll.description }}</p>{% endif %}
 
-    {% if error %}
-        <div class="alert alert-warning">{{ error }}</div>
-    {% endif %}
+<div class="vp-wrap">
 
-    {% if form %}
-        <form method="post">
-            {{ form.hidden_tag() }}
-            <div class="radio-group">
-                {% for value, label in form.candidate.choices %}
-                    <label>
-                        <input type="radio" name="candidate" value="{{ value }}" {% if form.candidate.data == value %}checked{% endif %}>
-                        {{ label }}
-                    </label>
-                {% endfor %}
-            </div>
-            <div class="form-group">
-                <button type="submit">Vote now</button>
-            </div>
-        </form>
-    {% else %}
-        <p>Please visit this poll again when it is active and ready for voting.</p>
+  {# ── Header bar ─────────────────────────────────────────────────────────────────── #}
+  <div class="vp-header">
+    <div class="vp-header-left">
+      {% if poll.logo_filename %}
+      <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+           alt="" class="vp-header-logo">
+      {% else %}
+      <div class="vp-header-logo-init">
+        {% set owner_name = poll.owner.name if poll.owner else poll.title %}
+        {{ owner_name.split()[0][:2].upper() }}
+      </div>
+      {% endif %}
+      <div class="vp-header-text">
+        <span class="vp-org-name">{{ poll.owner.name if poll.owner else poll.title }}</span>
+        <span class="vp-poll-number">POLL #{{ '%04d' % poll.id }}</span>
+      </div>
+    </div>
+    {% if eff == 'active' %}
+    <div class="vp-status-badge vp-status-live">
+      <span class="vp-live-dot"></span>
+      LIVE{% if time_left_str %} · CLOSES IN {{ time_left_str }}{% endif %}
+    </div>
+    {% elif eff == 'closed' %}
+    <div class="vp-status-badge vp-status-closed">CLOSED</div>
+    {% elif eff == 'not_started' %}
+    <div class="vp-status-badge vp-status-upcoming">UPCOMING</div>
     {% endif %}
+  </div>
+
+  {# ── Poll meta ──────────────────────────────────────────────────────────────────── #}
+  <div class="vp-meta">
+    {% if label_display %}
+    <div class="vp-label">{{ label_display }}</div>
+    {% endif %}
+    <div class="vp-title-row">
+      <h1 class="vp-title">{{ poll.title }}</h1>
+      {% if total_votes > 0 %}
+      <div class="vp-vote-count">
+        <span class="vp-vote-num">{{ '{:,}'.format(total_votes).replace(',', ' ') }}</span>
+        <span class="vp-vote-label">VOTES CAST</span>
+      </div>
+      {% endif %}
+    </div>
+    {% if poll.description %}
+    <p class="vp-desc">{{ poll.description }}</p>
+    {% endif %}
+  </div>
+
+  {# ── Main content ──────────────────────────────────────────────────────────────────── #}
+  {% if form %}
+  <form method="post" class="vp-form" id="vp-form">
+    {{ form.hidden_tag() }}
+
+    <div class="vp-form-body">
+      {# Tab switcher #}
+      <div class="vp-tabs-bar">
+        <button type="button" class="vp-tab vp-tab-active" data-tab="gallery">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="0" y="0" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="8" y="0" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="0" y="8" width="6" height="6" rx="1.5" fill="currentColor"/>
+            <rect x="8" y="8" width="6" height="6" rx="1.5" fill="currentColor"/>
+          </svg>
+          Gallery
+        </button>
+        <button type="button" class="vp-tab" data-tab="results">
+          <svg width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true">
+            <rect x="0" y="6" width="3" height="8" rx="1" fill="currentColor"/>
+            <rect x="4" y="3" width="3" height="11" rx="1" fill="currentColor"/>
+            <rect x="8" y="0" width="3" height="14" rx="1" fill="currentColor"/>
+            <rect x="12" y="4" width="2" height="10" rx="1" fill="currentColor"/>
+          </svg>
+          Live results
+        </button>
+      </div>
+
+      {# ── Gallery tab ──────────────────────────────────────────────────────────────── #}
+      <div class="vp-tab-content" id="tab-gallery">
+        <div class="vp-gallery-grid">
+          {% for c in candidates %}
+          {% set words = c.name.split() %}
+          {% set initials = (words[0][0] + (words[1][0] if words|length > 1 else ''))|upper %}
+          <label class="vp-player-card" for="cg-{{ c.id }}">
+            <input type="radio" name="candidate" value="{{ c.id }}"
+                   id="cg-{{ c.id }}" class="vp-candidate-radio">
+            <div class="vp-player-photo">
+              {% if c.photo_filename %}
+              <img src="{{ url_for('static', filename='candidate_photos/' + c.photo_filename) }}"
+                   alt="{{ c.name }}">
+              {% else %}
+              <div class="vp-photo-placeholder">
+                <span class="vp-photo-initials">{{ initials }}</span>
+              </div>
+              {% endif %}
+              {% if c.jersey_number %}
+              <div class="vp-jersey-badge">#{{ c.jersey_number }}</div>
+              {% endif %}
+              <div class="vp-select-ring"></div>
+            </div>
+            <div class="vp-player-info">
+              <div class="vp-player-name">{{ c.name }}</div>
+              {% if c.position %}
+              <div class="vp-player-pos">{{ c.position.upper() }}</div>
+              {% endif %}
+              {% if c.stats_line %}
+              <div class="vp-player-stats">{{ c.stats_line }}</div>
+              {% endif %}
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+      </div>
+
+      {# ── Live results tab ────────────────────────────────────────────────────────────── #}
+      <div class="vp-tab-content" id="tab-results" style="display:none;">
+        <div class="vp-split">
+          {# Left: candidate selector #}
+          <div class="vp-split-left">
+            <div class="vp-split-heading">SELECT A PLAYER</div>
+            {% for c in candidates %}
+            <div class="vp-radio-row" data-candidate="{{ c.id }}">
+              <div class="vp-radio-circle" id="circle-{{ c.id }}"></div>
+              <span class="vp-rr-inner">
+                {% if c.jersey_number %}<span class="vp-rr-num">#{{ c.jersey_number }}</span>{% endif %}
+                <span class="vp-rr-name">{{ c.name }}</span>
+                {% if c.position %}<span class="vp-rr-pos">{{ c.position[:2].upper() }}</span>{% endif %}
+              </span>
+            </div>
+            {% endfor %}
+            <div class="vp-radio-submit">
+              <button type="submit" class="vp-submit-btn vp-submit-sm" id="vp-submit-inline" disabled>
+                {{ ui('vote_now') }}
+              </button>
+            </div>
+          </div>
+
+          {# Right: dark results panel #}
+          <div class="vp-split-right">
+            <div class="vp-results-label">TOTAL VOTES</div>
+            <div class="vp-results-total">{{ '{:,}'.format(total_votes).replace(',', ' ') }}</div>
+            {% if eff == 'active' %}
+            <div class="vp-results-live">
+              <span class="vp-live-dot-sm"></span> LIVE RESULTS
+            </div>
+            {% endif %}
+            {% for c in candidates_by_votes %}
+            {% set count = vote_counts.get(c.id, 0) %}
+            {% set pct = (count / total_votes * 100)|round(1) if total_votes > 0 else 0 %}
+            <div class="vp-result-row">
+              <div class="vp-result-meta">
+                <span class="vp-result-rank">{{ loop.index }}</span>
+                <span class="vp-result-name">{{ c.name }}</span>
+                {% if loop.first and total_votes > 0 %}<span class="vp-leader-badge">LEADER</span>{% endif %}
+                <span class="vp-result-pct">{{ pct }}%</span>
+              </div>
+              <div class="vp-result-bar-wrap">
+                <div class="vp-result-bar {% if loop.first and total_votes > 0 %}vp-bar-leader{% endif %}"
+                     style="width:{{ pct }}%"></div>
+              </div>
+              <div class="vp-result-votes">{{ '{:,}'.format(count).replace(',', ' ') }} votes</div>
+            </div>
+            {% endfor %}
+            <div class="vp-result-updated">UPDATED JUST NOW</div>
+          </div>
+        </div>
+      </div>
+
+      {# ── Footer submit bar ───────────────────────────────────────────────────────────── #}
+      <div class="vp-footer">
+        <span class="vp-footer-text">{{ ui('one_vote_per_supporter') }}</span>
+        <button type="submit" class="vp-submit-btn" id="vp-submit-main" disabled>
+          {{ ui('vote_now') }}
+        </button>
+      </div>
+    </div>
+  </form>
+
+  {% elif error %}
+  <div class="vp-error-card">
+    <p>{{ error }}</p>
+  </div>
+  {% endif %}
+
+  {# ── Sponsors ─────────────────────────────────────────────────────────────────────── #}
+  {% if poll.sponsors %}
+  <div class="sponsors-section" style="margin-top:8px;">
+    <p class="sponsors-heading">{{ ui('sponsors') }}</p>
+    <div class="sponsors-row">
+      {% for sponsor in poll.sponsors %}
+      <div class="sponsor-item">
+        {% if sponsor.logo_filename %}
+        <img src="{{ url_for('static', filename='sponsors/' + sponsor.logo_filename) }}"
+             alt="{{ sponsor.name or '' }}" class="sponsor-logo">
+        {% elif sponsor.name %}
+        <span class="sponsor-name">{{ sponsor.name }}</span>
+        {% endif %}
+      </div>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
 </div>
+
+<script>
+(function () {
+  var tabs = document.querySelectorAll('.vp-tab');
+  var contents = document.querySelectorAll('.vp-tab-content');
+
+  tabs.forEach(function (btn) {
+    btn.addEventListener('click', function () {
+      tabs.forEach(function (b) { b.classList.remove('vp-tab-active'); });
+      contents.forEach(function (c) { c.style.display = 'none'; });
+      btn.classList.add('vp-tab-active');
+      document.getElementById('tab-' + btn.dataset.tab).style.display = '';
+    });
+  });
+
+  function syncSelection(val) {
+    document.querySelectorAll('.vp-radio-row[data-candidate]').forEach(function (r) {
+      r.classList.toggle('selected', r.dataset.candidate === String(val));
+    });
+    document.querySelectorAll('.vp-submit-btn').forEach(function (btn) {
+      btn.disabled = false;
+    });
+  }
+
+  document.querySelectorAll('.vp-candidate-radio').forEach(function (radio) {
+    radio.addEventListener('change', function () { syncSelection(radio.value); });
+  });
+
+  document.querySelectorAll('.vp-radio-row[data-candidate]').forEach(function (row) {
+    row.addEventListener('click', function () {
+      var cid = row.dataset.candidate;
+      var r = document.getElementById('cg-' + cid);
+      if (r) { r.checked = true; syncSelection(cid); }
+    });
+  });
+})();
+</script>
 {% endblock %}

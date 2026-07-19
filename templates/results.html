@@ -1,39 +1,65 @@
 {% extends 'base.html' %}
-{% block title %}Results - QR Voting{% endblock %}
+{% block title %}{{ ui('results_btn') }} – {{ poll.title }}{% endblock %}
 {% block content %}
+
+{% if poll.logo_filename %}
+<div class="poll-logo-banner">
+    <img src="{{ url_for('static', filename='logos/' + poll.logo_filename) }}"
+         alt="{{ poll.title }}" class="poll-logo-img">
+</div>
+{% endif %}
+
 <div class="card">
     <h1>{{ poll.title }}</h1>
-    <p>{{ poll.description or "" }}</p>
-    <p><strong>Poll status:</strong> {{ poll.status|capitalize }}</p>
-    <p><strong>Total votes:</strong> {{ total }}</p>
-    <a class="button" href="{{ url_for('export_results', poll_id=poll.id) }}">Export CSV</a>
-    {% if current_user.is_authenticated %}
-        <a class="button secondary" href="{{ url_for('poll_qr', poll_id=poll.id) }}">QR code</a>
-    {% endif %}
+    {% if poll.description %}<p>{{ poll.description }}</p>{% endif %}
+    <p><strong>{{ ui('poll_status_label') }}:</strong>
+        <span class="status-badge status-{{ poll.status }}">{{ ui('status_' + poll.status) }}</span>
+    </p>
+    <p><strong>{{ ui('total_votes_admin') }}:</strong> {{ total }}</p>
+    <div style="display:flex;gap:10px;flex-wrap:wrap;">
+        <a class="button" href="{{ url_for('export_results', poll_id=poll.id) }}">{{ ui('export_csv_btn') }}</a>
+        {% if current_user.is_authenticated %}
+        <a class="button secondary" href="{{ url_for('poll_qr', poll_id=poll.id) }}">{{ ui('qr_code_btn') }}</a>
+        <a class="button secondary" href="{{ url_for('edit_poll', poll_id=poll.id) }}">← {{ ui('save_btn') }}</a>
+        {% endif %}
+    </div>
 </div>
+
 <div class="results-card">
-    <h2>Vote breakdown</h2>
+    <h2>{{ ui('vote_breakdown') }}</h2>
     {% if candidates %}
-        <table class="table">
-            <thead>
-                <tr>
-                    <th>Candidate</th>
-                    <th>Votes</th>
-                    <th>Share</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for candidate in candidates %}
-                    <tr>
-                        <td>{{ candidate.name }}</td>
-                        <td>{{ vote_counts[candidate.id] }}</td>
-                        <td>{{ ((vote_counts[candidate.id] / total * 100) if total else 0) | round(1) }}%</td>
-                    </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+    {% for candidate in candidates %}
+    {% set count = vote_counts[candidate.id] %}
+    {% set pct = ((count / total * 100) if total else 0) | round(1) %}
+    <div class="result-row">
+        <div class="result-candidate-name">{{ candidate.name }}</div>
+        <div class="result-bar-wrap">
+            <div class="result-bar" style="width: {{ pct }}%;"></div>
+        </div>
+        <div class="result-stats">{{ count }} {{ ui('votes_col') }} ({{ pct }}%)</div>
+    </div>
+    {% endfor %}
     {% else %}
-        <p>No candidates available.</p>
+    <p>{{ ui('no_candidates_admin') }}</p>
     {% endif %}
 </div>
+
+{% if poll.sponsors %}
+<div class="sponsors-section">
+    <p class="sponsors-heading">{{ ui('sponsors') }}</p>
+    <div class="sponsors-row">
+        {% for sponsor in poll.sponsors %}
+        <div class="sponsor-item">
+            {% if sponsor.logo_filename %}
+            <img src="{{ url_for('static', filename='sponsors/' + sponsor.logo_filename) }}"
+                 alt="{{ sponsor.name or '' }}" class="sponsor-logo">
+            {% elif sponsor.name %}
+            <span class="sponsor-name">{{ sponsor.name }}</span>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
 {% endblock %}
